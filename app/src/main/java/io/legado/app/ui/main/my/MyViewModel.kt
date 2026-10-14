@@ -65,10 +65,13 @@ class MyViewModel(
         viewModelScope.launch {
             FlowEventBus.with<String>(EventBus.WEB_SERVICE)
                 .collect { address ->
+                    // 事件流 replay=1，进程内可能残留上一次的地址；
+                    // 运行状态一律以服务实例为准，否则界面会显示"运行中"而实际没监听。
+                    val running = WebService.isRun
                     _uiState.update { state ->
                         state.copy(
-                            isWebServiceRun = address.isNotEmpty(),
-                            webServiceAddress = address
+                            isWebServiceRun = running,
+                            webServiceAddress = if (running) address else ""
                         )
                     }
                 }

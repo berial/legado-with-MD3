@@ -34,11 +34,15 @@ import io.legado.app.utils.startService
 import io.legado.app.utils.stopService
 import io.legado.app.utils.toastOnUi
 import io.legado.app.web.KtorServer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import splitties.init.appCtx
 import splitties.systemservices.powerManager
 import splitties.systemservices.wifiManager
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.ServerSocket
 
 class WebService : BaseService() {
 
@@ -180,29 +184,40 @@ class WebService : BaseService() {
         val addressList = NetworkUtils.getLocalIPAddress()
         if (addressList.any()) {
             val port = getPort()
-            ktorServer = KtorServer(port)
-            try {
-                ktorServer?.start()
-                ktorServer?.startWebSocket(port + 1)
-                notificationList.clear()
-                notificationList.addAll(addressList.map { address ->
-                    getString(
-                        R.string.http_ip,
-                        address.hostAddress,
-                        getPort()
-                    )
-                })
-                hostAddress = notificationList.first()
-                isRun = true
-                postEvent(EventBus.WEB_SERVICE, hostAddress)
-                FlowEventBus.post(EventBus.WEB_SERVICE, hostAddress)
-                startForegroundNotification()
-            } catch (e: Exception) {
-                ktorServer?.stop()
-                ktorServer = null
-                toastOnUi(e.localizedMessage ?: "")
-                e.printOnDebug()
-                stopSelf()
+            lifecycleScope.launch(Dispatchers.IO) {
+                // CIO 引擎在自己的作用域里 bind，失败会逃逸到全局异常处理器直接崩溃，
+                // 调用方 try/catch 拦不住，只能在启动前自检端口。
+                val busyPort = listOf(port, port + 1).firstOrNull { !isPortAvailable(it) }
+                if (busyPort != null) {
+                    isRun = false
+                    toastOnUi(getString(R.string.web_service_port_in_use, busyPort))
+                    stopSelf()
+                    return@launch
+                }
+                ktorServer = KtorServer(port)
+                try {
+                    ktorServer?.start()
+                    ktorServer?.startWebSocket(port + 1)
+                    notificationList.clear()
+                    notificationList.addAll(addressList.map { address ->
+                        getString(
+                            R.string.http_ip,
+                            address.hostAddress,
+                            port
+                        )
+                    })
+                    hostAddress = notificationList.first()
+                    isRun = true
+                    postEvent(EventBus.WEB_SERVICE, hostAddress)
+                    FlowEventBus.post(EventBus.WEB_SERVICE, hostAddress)
+                    startForegroundNotification()
+                } catch (e: Exception) {
+                    ktorServer?.stop()
+                    ktorServer = null
+                    toastOnUi(e.localizedMessage ?: "")
+                    e.printOnDebug()
+                    stopSelf()
+                }
             }
         } else {
             toastOnUi("web service cant start, no ip address")
@@ -216,6 +231,13 @@ class WebService : BaseService() {
             port = 1122
         }
         return port
+    }
+
+    private fun isPortAvailable(port: Int): Boolean = try {
+        ServerSocket().use { it.bind(InetSocketAddress(port)) }
+        true
+    } catch (e: IOException) {
+        false
     }
 
     /**

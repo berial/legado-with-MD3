@@ -38,10 +38,17 @@ class KtorServer(private val port: Int) {
     private var wsServer: EmbeddedServer<*, *>? = null
     private val assetsWeb = AssetsWeb("web")
 
-    fun start() {
-        server = embeddedServer(CIO, port = port) {
+    /**
+     * 挂起直到引擎就绪（Ktor 的 start(wait = false) 是 fire-and-forget）。
+     * 注意：端口被占用时 CIO 是在自己的作用域里 bind，异常会逃逸到全局异常处理器，
+     * 调用方的 try/catch 拦不住，所以调用方必须先用 isPortAvailable 自检。
+     */
+    suspend fun start() {
+        server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
+            install(IgnoreTrailingSlash)
             install(ContentNegotiation) {
                 gson {
+                    disableHtmlEscaping()
                     setLenient()
                 }
             }
@@ -147,11 +154,12 @@ class KtorServer(private val port: Int) {
                     }
                 }
             }
-        }.start(wait = false)
+        }
+        server?.startSuspend(wait = false)
     }
 
-    fun startWebSocket(wsPort: Int) {
-        wsServer = embeddedServer(CIO, port = wsPort) {
+    suspend fun startWebSocket(wsPort: Int) {
+        wsServer = embeddedServer(CIO, port = wsPort, host = "0.0.0.0") {
             install(WebSockets)
             routing {
                 webSocket("/bookSourceDebug") {
@@ -164,7 +172,8 @@ class KtorServer(private val port: Int) {
                     BookSearchWebSocket(this).handle()
                 }
             }
-        }.start(wait = false)
+        }
+        wsServer?.startSuspend(wait = false)
     }
 
     fun stop() {
@@ -182,7 +191,7 @@ class KtorServer(private val port: Int) {
             respondReturnData(returnData)
         } catch (e: Exception) {
             LogUtils.e(TAG, e.stackTraceStr)
-            call.respondText(e.message ?: "Unknown error")
+            respondReturnData(ReturnData().setErrorMsg(e.localizedMessage ?: e.message ?: "Unknown error"))
         }
     }
 
@@ -197,11 +206,11 @@ class KtorServer(private val port: Int) {
             if (returnData != null) {
                 respondReturnData(returnData)
             } else {
-                call.respond(HttpStatusCode.NotFound)
+                respondReturnData(ReturnData().setErrorMsg("Not found"))
             }
         } catch (e: Exception) {
             LogUtils.e(TAG, e.stackTraceStr)
-            call.respondText(e.message ?: "Unknown error")
+            respondReturnData(ReturnData().setErrorMsg(e.localizedMessage ?: e.message ?: "Unknown error"))
         }
     }
 
