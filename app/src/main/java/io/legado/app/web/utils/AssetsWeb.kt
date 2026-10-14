@@ -18,7 +18,7 @@ class AssetsWeb(rootPath: String) {
     }
 
     fun getInputStream(path: String): InputStream? {
-        val path1 = (rootPath + path).replace("/+".toRegex(), File.separator)
+        val path1 = (rootPath + "/" + path).replace("/+".toRegex(), "/").trimStart('/')
         return try {
             assetManager.open(path1)
         } catch (e: Exception) {

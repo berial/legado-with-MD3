@@ -45,7 +45,7 @@ object DefaultData {
     val httpTTS: List<HttpTTS> by lazy {
         val json =
             String(
-                appCtx.assets.open("defaultData${File.separator}httpTTS.json")
+                appCtx.assets.open("defaultData/httpTTS.json")
                     .readBytes()
             )
         HttpTTS.fromJsonArray(json).getOrElse {
@@ -55,7 +55,7 @@ object DefaultData {
 
     val readConfigs: List<ReadBookConfig.Config> by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}${ReadBookConfig.configFileName}")
+            appCtx.assets.open("defaultData/${ReadBookConfig.configFileName}")
                 .readBytes()
         )
         GSON.fromJsonArray<ReadBookConfig.Config>(json).getOrNull()
@@ -64,7 +64,7 @@ object DefaultData {
 
     val txtTocRules: List<TxtTocRule> by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}txtTocRule.json")
+            appCtx.assets.open("defaultData/txtTocRule.json")
                 .readBytes()
         )
         GSON.fromJsonArray<TxtTocRule>(json).getOrNull() ?: emptyList()
@@ -72,7 +72,7 @@ object DefaultData {
 
     val themeConfigs: List<ThemeConfigStore.Config> by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}${ThemeConfigStore.configFileName}")
+            appCtx.assets.open("defaultData/${ThemeConfigStore.configFileName}")
                 .readBytes()
         )
         GSON.fromJsonArray<ThemeConfigStore.Config>(json).getOrNull() ?: emptyList()
@@ -80,7 +80,7 @@ object DefaultData {
 
     val rssSources: List<RssSource> by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}rssSources.json")
+            appCtx.assets.open("defaultData/rssSources.json")
                 .readBytes()
         )
         GSON.fromJsonArray<RssSource>(json).getOrDefault(emptyList())
@@ -88,7 +88,7 @@ object DefaultData {
 
     val coverRule: BookCover.CoverRule by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}coverRule.json")
+            appCtx.assets.open("defaultData/coverRule.json")
                 .readBytes()
         )
         GSON.fromJsonObject<BookCover.CoverRule>(json).getOrThrow()
@@ -96,7 +96,7 @@ object DefaultData {
 
     val dictRules: List<DictRule> by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}dictRules.json")
+            appCtx.assets.open("defaultData/dictRules.json")
                 .readBytes()
         )
         GSON.fromJsonArray<DictRule>(json).getOrThrow()
@@ -104,7 +104,7 @@ object DefaultData {
 
     val keyboardAssists: List<KeyboardAssist> by lazy {
         val json = String(
-            appCtx.assets.open("defaultData${File.separator}keyboardAssists.json")
+            appCtx.assets.open("defaultData/keyboardAssists.json")
                 .readBytes()
         )
         GSON.fromJsonArray<KeyboardAssist>(json).getOrThrow()
